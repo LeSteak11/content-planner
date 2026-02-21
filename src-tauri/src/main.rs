@@ -6,7 +6,7 @@ mod models;
 mod commands;
 
 use std::sync::Mutex;
-use tauri::State;
+use tauri::Manager;
 
 pub struct AppState {
     db: Mutex<rusqlite::Connection>,

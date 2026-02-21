@@ -111,25 +111,29 @@ pub fn update_post(
     state: State<AppState>,
     input: UpdatePostInput,
 ) -> Result<Post, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let id = input.id.clone();
     
-    let now = Utc::now().to_rfc3339();
+    {
+        let db = state.db.lock().map_err(|e| e.to_string())?;
+        
+        let now = Utc::now().to_rfc3339();
+        
+        db.execute(
+            "UPDATE posts SET username = ?1, caption = ?2, media_paths = ?3, platforms = ?4, scheduled_at = ?5, updated_at = ?6 WHERE id = ?7",
+            rusqlite::params![
+                &input.username,
+                &input.caption,
+                serde_json::to_string(&input.media_paths).map_err(|e| e.to_string())?,
+                serde_json::to_string(&input.platforms).map_err(|e| e.to_string())?,
+                &input.scheduled_at,
+                &now,
+                &input.id,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
     
-    db.execute(
-        "UPDATE posts SET username = ?1, caption = ?2, media_paths = ?3, platforms = ?4, scheduled_at = ?5, updated_at = ?6 WHERE id = ?7",
-        rusqlite::params![
-            &input.username,
-            &input.caption,
-            serde_json::to_string(&input.media_paths).map_err(|e| e.to_string())?,
-            serde_json::to_string(&input.platforms).map_err(|e| e.to_string())?,
-            &input.scheduled_at,
-            &now,
-            &input.id,
-        ],
-    )
-    .map_err(|e| e.to_string())?;
-    
-    get_post(state, input.id)
+    get_post(state, id)
 }
 
 #[tauri::command]
